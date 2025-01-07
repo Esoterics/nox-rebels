@@ -1,0 +1,175 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #121212;  /* Dark background */
+    color: #f0f0f0;  /* Light text */
+    margin: 0;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #1f1f2e;  /* Slightly lighter dark */
+    padding: 15px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+nav a {
+    color: #f0f0f0;
+    font-size: 18px;
+    margin: 0 15px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    color: #bb86fc;  /* Purple accent */
+}
+
+h1, h3 {
+    text-align: center;
+    margin-top: 20px;
+    color: #ffffff;
+}
+
+select {
+    padding: 10px;
+    margin: 15px auto;
+    display: block;
+    border-radius: 8px;
+    border: 1px solid #2d2d2d;
+    background-color: #1f1f1f;
+    color: #f0f0f0;
+    width: 200px;
+}
+
+table {
+    width: 90%;
+    margin: 20px auto;
+    border-collapse: collapse;
+    background-color: #1f1f1f;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+th, td {
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #2d2d2d;
+}
+
+th {
+    background-color: #33334d;  /* Darker header */
+    color: white;
+    font-size: 16px;
+}
+
+tr:hover {
+    background-color: #2d2d2d;
+}
+
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 15px;
+    font-size: 16px;
+    background-color: #4a4a8c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 10px 5px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+button:hover {
+    background-color: #3a3a78;
+    box-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+button svg {
+    margin-right: 8px;
+}
+
+#modal {
+    border: 1px solid #444;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    background: #2d2d2d;  /* Modal background */
+    color: white;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px rgba(187, 134, 252, 0.5);
+    z-index: 1001;
+}
+
+.hidden {
+    display: none;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+}
+
+input[type="text"] {
+    background-color: #1f1f1f;
+    color: white;
+    border: 1px solid #444;
+    padding: 10px;
+    border-radius: 5px;
+    width: 100%;
+}
+
+input[type="text"]::placeholder {
+    color: #aaa;
+}
+/* Ensure modal-backdrop is behind modal and doesn't cover everything */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);  /* Semi-transparent black */
+    z-index: 999;  /* Make sure it's below the modal */
+}
+
+.modal {
+    z-index: 1000;  /* Ensure modal is above everything */
+    border: 1px solid #444;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    background: #2d2d2d;  /* Dark modal background */
+    color: white;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px rgba(187, 134, 252, 0.5);  /* Subtle glowing effect */
+}
+
+.hidden {
+    display: none !important;  /* Make sure hidden means completely hidden */
+}

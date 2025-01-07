@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav>
+        <a href="/">OCR Extraction</a>
+        <a href="/admin.html">Administration</a>
+    </nav>
+
+    <h1>Administration Dashboard</h1>
+    <h3>Member Management</h3>
+
+    <label for="filter-status">Filter by Status:</label>
+    <select id="filter-status">
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="retired">Retired</option>
+        <option value="left">Left</option>
+    </select>
+
+    <table id="admin-table">
+        <thead>
+            <tr>
+                <th>Member Name</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="admin-body"></tbody>
+    </table>
+
+    <!-- Rename Modal -->
+    <div class="modal-backdrop hidden" id="modal-backdrop"></div>
+
+    <div id="rename-modal" class="hidden modal">
+        <h3>Rename Member</h3>
+        <label for="rename-input">New Name:</label>
+        <input type="text" id="rename-input" placeholder="Enter new member name" />
+        <div>
+            <button id="rename-save-button">Save</button>
+            <button id="close-rename-modal">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Change Status Modal -->
+    <div id="status-modal" class="hidden modal">
+        <h3>Change Member Status</h3>
+        <label for="status-select">Select New Status:</label>
+        <select id="status-select">
+            <option value="active">Active</option>
+            <option value="retired">Retired</option>
+            <option value="left">Left</option>
+        </select>
+        <div>
+            <button id="status-save-button">Save</button>
+            <button id="close-status-modal">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedMember = '';
+
+        // Fetch and display unique member names
+        async function fetchUniqueMembers(statusFilter = 'all') {
+            const response = await fetch(`/fetch-unique-members`);
+            const data = await response.json();
+            const adminBody = document.getElementById('admin-body');
+            adminBody.innerHTML = '';
+
+            const filteredData = statusFilter === 'all' ? data : data.filter(member => member.status === statusFilter);
+
+            filteredData.forEach((entry) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.member_name}</td>
+                    <td>${entry.status}</td>
+                    <td>
+                        <button onclick="openRenameModal('${entry.member_name}')">Rename</button>
+                        <button onclick="openStatusModal('${entry.member_name}')">Change Status</button>
+                    </td>
+                `;
+                adminBody.appendChild(row);
+            });
+        }
+
+        // Open Rename Modal
+        function openRenameModal(memberName) {
+            selectedMember = memberName;
+            document.getElementById('rename-modal').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        // Save Renamed Member
+        document.getElementById('rename-save-button').addEventListener('click', async () => {
+            const newName = document.getElementById('rename-input').value.trim();
+            if (!newName) return alert('Please enter a new name.');
+
+            const response = await fetch('/rename-member', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ selectedMembers: [selectedMember], newName }),
+            });
+
+            if (response.ok) {
+                alert('Member renamed successfully!');
+                closeModal('rename-modal');
+                fetchUniqueMembers();
+            } else {
+                alert('Error renaming member.');
+            }
+        });
+
+        // Open Status Modal
+        function openStatusModal(memberName) {
+            selectedMember = memberName;
+            document.getElementById('status-modal').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        // Save Member Status
+        document.getElementById('status-save-button').addEventListener('click', async () => {
+            const newStatus = document.getElementById('status-select').value;
+
+            const response = await fetch('/update-member-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ selectedMembers: [selectedMember], newStatus }),
+            });
+
+            if (response.ok) {
+                alert(`Member status changed to '${newStatus}' successfully!`);
+                closeModal('status-modal');
+                fetchUniqueMembers();
+            } else {
+                alert('Error changing member status.');
+            }
+        });
+
+        // Close Modals
+        document.getElementById('close-rename-modal').addEventListener('click', () => closeModal('rename-modal'));
+        document.getElementById('close-status-modal').addEventListener('click', () => closeModal('status-modal'));
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+
+        document.getElementById('filter-status').addEventListener('change', (e) => {
+            fetchUniqueMembers(e.target.value);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => fetchUniqueMembers());
+    </script>
+</body>
+
+</html>

@@ -157,6 +157,29 @@
         <button id="save-button">Save to Database</button>
     </div>
 
+    <h3>Compare Weekly Snapshot Data</h3>
+    <form id="comparison-form">
+        <label for="member-select">Select Members:</label>
+        <select id="member-select" multiple></select>
+        <br />
+        <button type="button" id="select-all">Select All</button>
+        <button type="button" id="deselect-all">Unselect All</button>
+    </form>
+
+    <div id="comparison-results">
+        <h4>Comparison Results:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Member Name</th>
+                    <th>Lv.5 Difference (Week 2 - Week 1)</th>
+                    <th>Lv.6 Difference (Week 2 - Week 1)</th>
+                </tr>
+            </thead>
+            <tbody id="comparison-body"></tbody>
+        </table>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
     <script>
         let rawOCRText = "";
@@ -204,6 +227,7 @@
                         const parsedData = await response.json();
                         console.log("Parsed Data:", parsedData);
                         populateReviewTable(parsedData);
+                        populateMemberSelect();
                     } else {
                         document.getElementById('raw-result').innerText = "Error extracting text.";
                     }
@@ -235,6 +259,61 @@
             });
         }
 
+        async function populateMemberSelect() {
+            const response = await fetch('/fetch-weekly-snapshots');
+            const data = await response.json();
+
+            const members = [...new Set(data.map((entry) => entry.member_name))];
+            const select = document.getElementById('member-select');
+            select.innerHTML = '';
+
+            members.forEach((member) => {
+                const option = document.createElement('option');
+                option.value = member;
+                option.textContent = member;
+                select.appendChild(option);
+            });
+        }
+
+        document.getElementById('comparison-form').addEventListener('change', async () => {
+            const selectedMembers = Array.from(document.getElementById('member-select').selectedOptions).map(
+                (option) => option.value
+            );
+
+            if (selectedMembers.length === 0) {
+                document.getElementById('comparison-body').innerHTML = '<tr><td colspan="3">No members selected.</td></tr>';
+                return;
+            }
+
+            const response = await fetch('/fetch-weekly-snapshots');
+            const data = await response.json();
+
+            const week1Data = data.filter((d) => d.week_number === 1);
+            const week2Data = data.filter((d) => d.week_number === 2);
+
+            const results = selectedMembers.map((member) => {
+                const week1 = week1Data.find((d) => d.member_name === member);
+                const week2 = week2Data.find((d) => d.member_name === member);
+
+                const lv5Diff = Math.max(0, (week2?.lv5 || 0) - (week1?.lv5 || 0));
+                const lv6Diff = Math.max(0, (week2?.lv6 || 0) - (week1?.lv6 || 0));
+
+                return { member_name: member, lv5Diff, lv6Diff };
+            });
+
+            const tableBody = document.getElementById('comparison-body');
+            tableBody.innerHTML = '';
+            results.forEach((result) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.member_name}</td>
+                    <td>${result.lv5Diff}</td>
+                    <td>${result.lv6Diff}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        });
+
         document.getElementById('save-button').addEventListener('click', async () => {
             const rows = document.querySelectorAll('#review-body tr');
             const reviewedData = Array.from(rows).map((row) => {
@@ -261,6 +340,10 @@
             } else {
                 alert("Error saving data to the database.");
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateMemberSelect();
         });
     </script>
 </body>

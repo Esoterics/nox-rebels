@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern OCR Text Extractor</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a4a8c;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4a4a8c;
+            color: white;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3a3a78;
+        }
+
+        h3 {
+            margin-top: 40px;
+            text-align: center;
+            font-weight: normal;
+        }
+
+        pre {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 15px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            white-space: pre-wrap;
+        }
+
+        table {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4a4a8c;
+            color: white;
+        }
+
+        td input {
+            width: 100%;
+            padding: 8px;
+            border: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #save-button {
+            margin: 20px auto;
+            display: block;
+            max-width: 200px;
+        }
+
+        @media screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            form,
+            pre,
+            table {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Upload Image for OCR</h1>
+    <form id="ocr-form">
+        <input type="file" id="image-upload" accept="image/*" required />
+        <button type="submit">Extract Text</button>
+    </form>
+
+    <h3>OCR Text Viewer</h3>
+    <button id="toggle-view-button">View Raw OCR Text</button>
+
+    <!-- Raw OCR Text Section -->
+    <div id="raw-ocr-text" class="hidden">
+        <h4>Raw OCR Result:</h4>
+        <pre id="raw-result">Raw OCR text will appear here...</pre>
+    </div>
+
+    <!-- Cleaned and Editable Data Section -->
+    <div id="cleaned-data">
+        <h4>Extracted and Cleansed Data for Review:</h4>
+        <table id="review-table">
+            <thead>
+                <tr>
+                    <th>Member Name</th>
+                    <th>Lv.1</th>
+                    <th>Lv.2</th>
+                    <th>Lv.3</th>
+                    <th>Lv.4</th>
+                    <th>Lv.5</th>
+                    <th>Lv.6</th>
+                </tr>
+            </thead>
+            <tbody id="review-body"></tbody>
+        </table>
+        <button id="save-button">Save to Database</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
+    <script>
+        let rawOCRText = "";
+
+        document.getElementById('toggle-view-button').addEventListener('click', () => {
+            const rawTextDiv = document.getElementById('raw-ocr-text');
+            const cleanedDataDiv = document.getElementById('cleaned-data');
+            const toggleButton = document.getElementById('toggle-view-button');
+
+            if (rawTextDiv.classList.contains("hidden")) {
+                rawTextDiv.classList.remove("hidden");
+                cleanedDataDiv.classList.add("hidden");
+                toggleButton.innerText = "View Cleaned Data";
+            } else {
+                rawTextDiv.classList.add("hidden");
+                cleanedDataDiv.classList.remove("hidden");
+                toggleButton.innerText = "View Raw OCR Text";
+            }
+        });
+
+        document.getElementById('ocr-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = document.getElementById('image-upload').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async function () {
+                const imageUrl = reader.result;
+                document.getElementById('raw-result').innerText = "Recognizing text...";
+
+                Tesseract.recognize(imageUrl, 'eng', {
+                    logger: (m) => console.log(m.progress),
+                }).then(async ({ data: { text } }) => {
+                    rawOCRText = text;
+                    document.getElementById('raw-result').innerText = rawOCRText;
+
+                    const response = await fetch('/extract-text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ocrText: text }),
+                    });
+
+                    if (response.ok) {
+                        const parsedData = await response.json();
+                        console.log("Parsed Data:", parsedData);
+                        populateReviewTable(parsedData);
+                    } else {
+                        document.getElementById('raw-result').innerText = "Error extracting text.";
+                    }
+                });
+            };
+        });
+
+        function populateReviewTable(data) {
+            const reviewBody = document.getElementById('review-body');
+            reviewBody.innerHTML = '';
+
+            if (data.length === 0) {
+                alert("No valid members found.");
+                return;
+            }
+
+            data.forEach((entry) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text" value="${entry.member_name}" /></td>
+                    <td><input type="number" value="${entry.lv1}" /></td>
+                    <td><input type="number" value="${entry.lv2}" /></td>
+                    <td><input type="number" value="${entry.lv3}" /></td>
+                    <td><input type="number" value="${entry.lv4}" /></td>
+                    <td><input type="number" value="${entry.lv5}" /></td>
+                    <td><input type="number" value="${entry.lv6}" /></td>
+                `;
+                reviewBody.appendChild(row);
+            });
+        }
+
+        document.getElementById('save-button').addEventListener('click', async () => {
+            const rows = document.querySelectorAll('#review-body tr');
+            const reviewedData = Array.from(rows).map((row) => {
+                const cells = row.querySelectorAll('input');
+                return {
+                    member_name: cells[0].value,
+                    lv1: parseInt(cells[1].value),
+                    lv2: parseInt(cells[2].value),
+                    lv3: parseInt(cells[3].value),
+                    lv4: parseInt(cells[4].value),
+                    lv5: parseInt(cells[5].value),
+                    lv6: parseInt(cells[6].value),
+                };
+            });
+
+            const response = await fetch('/save-manual-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: reviewedData }),
+            });
+
+            if (response.ok) {
+                alert("Data saved successfully!");
+            } else {
+                alert("Error saving data to the database.");
+            }
+        });
+    </script>
+</body>
+
+</html>

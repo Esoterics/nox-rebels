@@ -38,9 +38,9 @@
     </table>
 
     <!-- Rename Modal -->
-    <div class="modal-backdrop hidden" id="modal-backdrop"></div>
+    <div class="admin-modal-backdrop hidden" id="modal-backdrop"></div>
 
-    <div id="rename-modal" class="hidden modal">
+    <div id="rename-modal" class="hidden admin-modal">
         <h3>Rename Member</h3>
         <label for="rename-input">New Name:</label>
         <input type="text" id="rename-input" placeholder="Enter new member name" />
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Change Status Modal -->
-    <div id="status-modal" class="hidden modal">
+    <div id="status-modal" class="hidden admin-modal">
         <h3>Change Member Status</h3>
         <label for="status-select">Select New Status:</label>
         <select id="status-select">
@@ -144,15 +144,23 @@
             }
         });
 
-        // Close Modals
+        // Close Modals with buttons inside modals
         document.getElementById('close-rename-modal').addEventListener('click', () => closeModal('rename-modal'));
         document.getElementById('close-status-modal').addEventListener('click', () => closeModal('status-modal'));
 
+        // Close modal when clicking the backdrop
+        document.querySelector('.admin-modal-backdrop').addEventListener('click', () => {
+            closeModal('rename-modal');
+            closeModal('status-modal');
+        });
+
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
-            document.getElementById('modal-backdrop').classList.add('hidden');
+            const adminBackdrop = document.querySelector('.admin-modal-backdrop');
+            if (adminBackdrop) adminBackdrop.classList.add('hidden');
         }
 
+        // Filter member list by status
         document.getElementById('filter-status').addEventListener('change', (e) => {
             fetchUniqueMembers(e.target.value);
         });

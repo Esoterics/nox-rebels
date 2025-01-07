@@ -24,23 +24,12 @@ const db = new sqlite3.Database('./db/ocr-data.db', (err) => {
                 lv5 INTEGER,
                 lv6 INTEGER,
                 week_number INTEGER,
+                month INTEGER,
                 year INTEGER,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'active'
             )
         `);
-
-        // Add this block after the CREATE TABLE command to ensure the column exists
-        db.run(`
-            ALTER TABLE weekly_snapshots ADD COLUMN status TEXT DEFAULT 'active'
-        `, (err) => {
-            if (err && err.message.includes('duplicate column')) {
-                console.log("Column 'status' already exists.");
-            } else if (err) {
-                console.error("Error altering table:", err.message);
-            } else {
-                console.log("Added 'status' column successfully.");
-            }
-        });
     }
 });
 
@@ -74,11 +63,11 @@ app.post('/extract-text', (req, res) => {
 });
 
 app.post('/save-manual-data', (req, res) => {
-    const { data } = req.body;
+    const { data } = req.body;  // Data array containing member data with week, month, and year
 
     const insertStmt = db.prepare(`
-        INSERT INTO weekly_snapshots (member_name, lv1, lv2, lv3, lv4, lv5, lv6, week_number, year)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO weekly_snapshots (member_name, lv1, lv2, lv3, lv4, lv5, lv6, week_number, month, year)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     data.forEach((entry) => {
@@ -90,15 +79,15 @@ app.post('/save-manual-data', (req, res) => {
             entry.lv4,
             entry.lv5,
             entry.lv6,
-            1, // Placeholder for week_number, update this based on input if needed
-            new Date().getFullYear()
+            entry.week || null,  // Handle optional week
+            entry.month || null,
+            entry.year || null
         );
     });
 
     insertStmt.finalize();
     res.send("Data saved successfully!");
 });
-
 app.get('/fetch-weekly-snapshots', (req, res) => {
     const { status } = req.query;
 

@@ -1,3 +1,4 @@
+/* Base styling */
 body {
     font-family: 'Poppins', sans-serif;
     background-color: #121212;
@@ -5,6 +6,7 @@ body {
     margin: 0;
 }
 
+/* Navigation bar */
 nav {
     display: flex;
     justify-content: center;
@@ -24,11 +26,58 @@ nav a {
     font-weight: bold;
 }
 
+nav a:hover {
+    color: #6a6ab0;
+}
+
+/* Headings */
 h1, h3 {
     text-align: center;
     margin-top: 20px;
 }
 
+/* Buttons */
+button {
+    padding: 10px 20px;
+    background-color: #4a4a8c;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #6a6ab0;
+}
+
+button:disabled {
+    background-color: #7a7a9b;
+    cursor: not-allowed;
+}
+
+/* Input fields */
+input[type="file"],
+input[type="text"],
+input[type="number"],
+select {
+    width: 90%;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #1f1f2e;
+    color: #f0f0f0;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    border-color: #4a4a8c;
+}
+
+/* Review table */
 table {
     width: 90%;
     margin: 20px auto;
@@ -44,20 +93,99 @@ table th {
     background-color: #33334d;
 }
 
-button {
-    padding: 10px 20px;
-    background-color: #4a4a8c;
+table tr:hover {
+    background-color: #2a2a3f;
+}
+
+input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    background-color: #2e2e3f;
+    border: 1px solid #444;
     color: white;
-    font-size: 16px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
 }
 
+/* Modal styling */
 .modal {
-    display: none;
+    display: block;  /* Ensure modal is visible when toggled */
+    background-color: #1f1f2e;
+    padding: 20px;
+    color: white;
+    border-radius: 10px;
+    max-width: 500px;
+    position: fixed;
+    z-index: 1001;  /* Ensure modal is above the backdrop */
+    left: 50%;
+    top: 50%;  /* Centered vertically */
+    transform: translate(-50%, -50%);  /* Center the modal */
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.5);
 }
 
+.modal h3 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.modal .form-row {
+    margin-bottom: 15px;
+}
+
+.modal label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.modal input,
+.modal select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #2f2f3f;
+    color: white;
+    border: 1px solid #555;
+}
+
+.modal input:focus,
+.modal select:focus {
+    outline: none;
+    border-color: #6a6ab0;
+}
+
+/* Modal buttons */
+.modal button {
+    width: 45%;
+    margin: 5px;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+}
+
+/* Hidden class to toggle visibility */
 .hidden {
-    display: none;
+    display: none !important;
+}
+/* Raw OCR text styling */
+#raw-ocr-text pre {
+    padding: 15px;
+    background-color: #1f1f2e;
+    border-radius: 5px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 200px;
+    border: 1px solid #444;
+}
+
+/* Footer (optional) */
+footer {
+    text-align: center;
+    padding: 10px 0;
+    color: #b0b0b0;
 }

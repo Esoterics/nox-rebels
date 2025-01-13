@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav>
+        <a href="/">OCR Extraction</a>
+        <a href="/admin.html">Administration</a>
+        <a href="/report.html" class="active">Report</a>
+    </nav>
+
+    <h1>Member Report</h1>
+    <h3>Select Two Periods for Comparison</h3>
+
+    <div class="form-row">
+        <label for="period1">Comparison Start Period:</label>
+        <select id="period1"></select>
+
+        <label for="period2">Comparison End Period:</label>
+        <select id="period2"></select>
+
+        <button id="generate-report">Generate Report</button>
+    </div>
+
+    <div id="report-result">
+        <h4>Report Details:</h4>
+        <table id="report-table">
+            <thead>
+                <tr>
+                    <th>Member Name</th>
+                    <th>Lv.5 Difference</th>
+                    <th>Lv.6 Difference</th>
+                    <th>Total Difference</th>
+                </tr>
+            </thead>
+            <tbody id="report-body">
+                <tr>
+                    <td colspan="4">No data yet.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function loadAvailablePeriods() {
+            const response = await fetch('/available-periods');
+            const periods = await response.json();
+
+            if (!response.ok || !periods.length) {
+                console.error("Error fetching periods or no periods available.");
+                return;
+            }
+
+            populatePeriodDropdown(document.getElementById('period1'), periods);
+            populatePeriodDropdown(document.getElementById('period2'), periods);
+        }
+
+        function populatePeriodDropdown(periodDropdown, periods) {
+            const groupedByMonthYear = {};
+
+            periods.forEach((period) => {
+                const key = `${period.year}-${period.month}`;
+                if (!groupedByMonthYear[key]) {
+                    groupedByMonthYear[key] = [];
+                }
+                groupedByMonthYear[key].push(period);
+            });
+
+            Object.entries(groupedByMonthYear).forEach(([key, weeks]) => {
+                const [year, month] = key.split('-');
+                const monthNameText = monthName(parseInt(month));
+
+                weeks.forEach((week) => {
+                    const option = document.createElement('option');
+                    option.value = `${week.year}-${week.month}-${week.week_number}`;
+                    option.textContent = `Week ${week.week_number}, ${monthNameText} ${week.year}`;
+                    periodDropdown.appendChild(option);
+                });
+
+                const monthOption = document.createElement('option');
+                monthOption.value = `${year}-${month}-all`;
+                monthOption.textContent = `Entire ${monthNameText} ${year}`;
+                periodDropdown.appendChild(monthOption);
+            });
+        }
+
+        function monthName(month) {
+            const months = [
+                'January', 'February', 'March', 'April', 'May',
+                'June', 'July', 'August', 'September', 'October',
+                'November', 'December'
+            ];
+            return months[month - 1];
+        }
+
+        document.getElementById('generate-report').addEventListener('click', async () => {
+            const [year1, month1, week1] = document.getElementById('period1').value.split('-').map((v) => v === 'all' ? null : parseInt(v, 10));
+            const [year2, month2, week2] = document.getElementById('period2').value.split('-').map((v) => v === 'all' ? null : parseInt(v, 10));
+
+            const response = await fetch(`/report?year1=${year1}&month1=${month1}&week1=${week1 || ''}&year2=${year2}&month2=${month2}&week2=${week2 || ''}`);
+            if (response.ok) {
+                const reportData = await response.json();
+                populateReportTable(reportData);
+            } else {
+                alert("Error fetching report data.");
+            }
+        });
+
+        function populateReportTable(data) {
+            const reportBody = document.getElementById('report-body');
+            reportBody.innerHTML = '';
+
+            if (data.length === 0) {
+                reportBody.innerHTML = `<tr><td colspan="4">No data available for the selected periods.</td></tr>`;
+                return;
+            }
+
+            data.forEach((entry) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.member_name}</td>
+                    <td>${entry.lv5Diff}</td>
+                    <td>${entry.lv6Diff}</td>
+                    <td>${entry.totalDifference}</td>
+                `;
+                reportBody.appendChild(row);
+            });
+        }
+
+        window.onload = loadAvailablePeriods;
+    </script>
+</body>
+
+</html>

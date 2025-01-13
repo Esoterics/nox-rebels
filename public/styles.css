@@ -1,15 +1,17 @@
+/* Base styling */
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: #121212;  /* Dark background */
-    color: #f0f0f0;  /* Light text */
+    background-color: #121212;
+    color: #f0f0f0;
     margin: 0;
 }
 
+/* Navigation bar */
 nav {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #1f1f2e;  /* Slightly lighter dark */
+    background-color: #1f1f2e;
     padding: 15px 20px;
     position: sticky;
     top: 0;
@@ -22,154 +24,168 @@ nav a {
     margin: 0 15px;
     text-decoration: none;
     font-weight: bold;
-    transition: color 0.3s ease;
 }
 
 nav a:hover {
-    color: #bb86fc;  /* Purple accent */
+    color: #6a6ab0;
 }
 
+/* Headings */
 h1, h3 {
     text-align: center;
     margin-top: 20px;
-    color: #ffffff;
 }
 
+/* Buttons */
+button {
+    padding: 10px 20px;
+    background-color: #4a4a8c;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #6a6ab0;
+}
+
+button:disabled {
+    background-color: #7a7a9b;
+    cursor: not-allowed;
+}
+
+/* Input fields */
+input[type="file"],
+input[type="text"],
+input[type="number"],
 select {
+    width: 90%;
+    margin: 10px 0;
     padding: 10px;
-    margin: 15px auto;
-    display: block;
-    border-radius: 8px;
-    border: 1px solid #2d2d2d;
-    background-color: #1f1f1f;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #1f1f2e;
     color: #f0f0f0;
-    width: 200px;
 }
 
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    border-color: #4a4a8c;
+}
+
+/* Review table */
 table {
     width: 90%;
     margin: 20px auto;
     border-collapse: collapse;
-    background-color: #1f1f1f;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
-th, td {
-    padding: 15px;
-    text-align: center;
-    border-bottom: 1px solid #2d2d2d;
+table th, table td {
+    padding: 12px;
+    border-bottom: 1px solid #333;
 }
 
-th {
-    background-color: #33334d;  /* Darker header */
-    color: white;
-    font-size: 16px;
+table th {
+    background-color: #33334d;
 }
 
-tr:hover {
-    background-color: #2d2d2d;
+table tr:hover {
+    background-color: #2a2a3f;
 }
 
-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 15px;
-    font-size: 16px;
-    background-color: #4a4a8c;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 10px 5px;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-button:hover {
-    background-color: #3a3a78;
-    box-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
-}
-
-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
-}
-
-button svg {
-    margin-right: 8px;
-}
-
-#modal {
-    border: 1px solid #444;
-    padding: 20px;
+input[type="text"], input[type="number"] {
     width: 100%;
-    max-width: 400px;
-    background: #2d2d2d;  /* Modal background */
+    padding: 8px;
+    background-color: #2e2e3f;
+    border: 1px solid #444;
     color: white;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 10px;
-    box-shadow: 0px 0px 15px rgba(187, 134, 252, 0.5);
-    z-index: 1001;
 }
 
-.hidden {
-    display: none;
+/* Modal styling */
+.modal {
+    display: block;  /* Ensure modal is visible when toggled */
+    background-color: #1f1f2e;
+    padding: 20px;
+    color: white;
+    border-radius: 10px;
+    max-width: 500px;
+    position: fixed;
+    z-index: 1001;  /* Ensure modal is above the backdrop */
+    left: 50%;
+    top: 50%;  /* Centered vertically */
+    transform: translate(-50%, -50%);  /* Center the modal */
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.modal h3 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.modal .form-row {
+    margin-bottom: 15px;
+}
+
+.modal label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.modal input,
+.modal select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #2f2f3f;
+    color: white;
+    border: 1px solid #555;
+}
+
+.modal input:focus,
+.modal select:focus {
+    outline: none;
+    border-color: #6a6ab0;
+}
+
+/* Modal buttons */
+.modal button {
+    width: 45%;
+    margin: 5px;
 }
 
 .modal-backdrop {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     z-index: 1000;
 }
 
-input[type="text"] {
-    background-color: #1f1f1f;
-    color: white;
-    border: 1px solid #444;
-    padding: 10px;
-    border-radius: 5px;
-    width: 100%;
-}
-
-input[type="text"]::placeholder {
-    color: #aaa;
-}
-/* Ensure modal-backdrop is behind modal and doesn't cover everything */
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.7);  /* Semi-transparent black */
-    z-index: 999;  /* Make sure it's below the modal */
-}
-
-.modal {
-    z-index: 1000;  /* Ensure modal is above everything */
-    border: 1px solid #444;
-    padding: 20px;
-    width: 100%;
-    max-width: 400px;
-    background: #2d2d2d;  /* Dark modal background */
-    color: white;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 10px;
-    box-shadow: 0px 0px 15px rgba(187, 134, 252, 0.5);  /* Subtle glowing effect */
-}
-
+/* Hidden class to toggle visibility */
 .hidden {
-    display: none !important;  /* Make sure hidden means completely hidden */
+    display: none !important;
+}
+/* Raw OCR text styling */
+#raw-ocr-text pre {
+    padding: 15px;
+    background-color: #1f1f2e;
+    border-radius: 5px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    max-height: 200px;
+    border: 1px solid #444;
+}
+
+/* Footer (optional) */
+footer {
+    text-align: center;
+    padding: 10px 0;
+    color: #b0b0b0;
 }

@@ -4,135 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern OCR Text Extractor</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f6f8;
-            color: #333;
-            padding: 20px;
-            margin: 0;
-        }
-
-        h1 {
-            text-align: center;
-            color: #4a4a8c;
-        }
-
-        form {
-            max-width: 500px;
-            margin: 20px auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #4a4a8c;
-            color: white;
-            font-size: 18px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #3a3a78;
-        }
-
-        h3 {
-            margin-top: 40px;
-            text-align: center;
-            font-weight: normal;
-        }
-
-        pre {
-            max-width: 500px;
-            margin: 20px auto;
-            padding: 15px;
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            font-size: 16px;
-            white-space: pre-wrap;
-        }
-
-        table {
-            width: 100%;
-            max-width: 800px;
-            margin: 20px auto;
-            border-collapse: collapse;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #4a4a8c;
-            color: white;
-        }
-
-        td input {
-            width: 100%;
-            padding: 8px;
-            border: none;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        #save-button {
-            margin: 20px auto;
-            display: block;
-            max-width: 200px;
-        }
-
-        @media screen and (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-
-            form,
-            pre,
-            table {
-                padding: 15px;
-            }
-        }
-    </style>
+    <title>OCR Text Extractor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <h1>Upload Image for OCR</h1>
+    <!-- Top Navigation Menu -->
+    <nav>
+        <a href="/">OCR Extraction</a>
+        <a href="/admin.html">Administration</a>
+        <a href="/report.html" class="active">Report</a>
+    </nav>
+
+    <h1>OCR Text Extraction</h1>
+    <h3>Upload your image and extract text data</h3>
+
     <form id="ocr-form">
         <input type="file" id="image-upload" accept="image/*" required />
         <button type="submit">Extract Text</button>
     </form>
 
-    <h3>OCR Text Viewer</h3>
-    <button id="toggle-view-button">View Raw OCR Text</button>
-
     <!-- Raw OCR Text Section -->
-    <div id="raw-ocr-text" class="hidden">
+    <div id="raw-ocr-text">
         <h4>Raw OCR Result:</h4>
         <pre id="raw-result">Raw OCR text will appear here...</pre>
     </div>
@@ -157,48 +51,43 @@
         <button id="save-button">Save to Database</button>
     </div>
 
-    <h3>Compare Weekly Snapshot Data</h3>
-    <form id="comparison-form">
-        <label for="member-select">Select Members:</label>
-        <select id="member-select" multiple></select>
-        <br />
-        <button type="button" id="select-all">Select All</button>
-        <button type="button" id="deselect-all">Unselect All</button>
-    </form>
-
-    <div id="comparison-results">
-        <h4>Comparison Results:</h4>
-        <table>
-            <thead>
-                <tr>
-                    <th>Member Name</th>
-                    <th>Lv.5 Difference (Week 2 - Week 1)</th>
-                    <th>Lv.6 Difference (Week 2 - Week 1)</th>
-                </tr>
-            </thead>
-            <tbody id="comparison-body"></tbody>
-        </table>
+    <div id="week-modal" class="hidden modal">
+        <h3>Enter Snapshot Period</h3>
+        <div class="form-row">
+            <label for="week-input">Week (Optional):</label>
+            <input type="number" id="week-input" placeholder="1-52" min="1" max="52" />
+            <label for="month-input">Month:</label>
+            <select id="month-input">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <label for="year-input">Year:</label>
+            <input type="number" id="year-input" placeholder="2025" value="2025" />
+        </div>
+    
+        <div style="text-align: center;">
+            <button id="submit-period">Submit</button>
+            <button id="cancel-period">Cancel</button>
+        </div>
     </div>
+    
+    <div class="modal-backdrop hidden" id="modal-backdrop"></div>
+    
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
     <script>
         let rawOCRText = "";
-
-        document.getElementById('toggle-view-button').addEventListener('click', () => {
-            const rawTextDiv = document.getElementById('raw-ocr-text');
-            const cleanedDataDiv = document.getElementById('cleaned-data');
-            const toggleButton = document.getElementById('toggle-view-button');
-
-            if (rawTextDiv.classList.contains("hidden")) {
-                rawTextDiv.classList.remove("hidden");
-                cleanedDataDiv.classList.add("hidden");
-                toggleButton.innerText = "View Cleaned Data";
-            } else {
-                rawTextDiv.classList.add("hidden");
-                cleanedDataDiv.classList.remove("hidden");
-                toggleButton.innerText = "View Raw OCR Text";
-            }
-        });
+        let reviewedData = [];
 
         document.getElementById('ocr-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -225,9 +114,8 @@
 
                     if (response.ok) {
                         const parsedData = await response.json();
-                        console.log("Parsed Data:", parsedData);
                         populateReviewTable(parsedData);
-                        populateMemberSelect();
+                        reviewedData = parsedData;
                     } else {
                         document.getElementById('raw-result').innerText = "Error extracting text.";
                     }
@@ -259,73 +147,30 @@
             });
         }
 
-        async function populateMemberSelect() {
-            const response = await fetch('/fetch-weekly-snapshots');
-            const data = await response.json();
-
-            const members = [...new Set(data.map((entry) => entry.member_name))];
-            const select = document.getElementById('member-select');
-            select.innerHTML = '';
-
-            members.forEach((member) => {
-                const option = document.createElement('option');
-                option.value = member;
-                option.textContent = member;
-                select.appendChild(option);
-            });
-        }
-
-        document.getElementById('comparison-form').addEventListener('change', async () => {
-            const selectedMembers = Array.from(document.getElementById('member-select').selectedOptions).map(
-                (option) => option.value
-            );
-
-            if (selectedMembers.length === 0) {
-                document.getElementById('comparison-body').innerHTML = '<tr><td colspan="3">No members selected.</td></tr>';
-                return;
-            }
-
-            const response = await fetch('/fetch-weekly-snapshots');
-            const data = await response.json();
-
-            const week1Data = data.filter((d) => d.week_number === 1);
-            const week2Data = data.filter((d) => d.week_number === 2);
-
-            const results = selectedMembers.map((member) => {
-                const week1 = week1Data.find((d) => d.member_name === member);
-                const week2 = week2Data.find((d) => d.member_name === member);
-
-                const lv5Diff = Math.max(0, (week2?.lv5 || 0) - (week1?.lv5 || 0));
-                const lv6Diff = Math.max(0, (week2?.lv6 || 0) - (week1?.lv6 || 0));
-
-                return { member_name: member, lv5Diff, lv6Diff };
-            });
-
-            const tableBody = document.getElementById('comparison-body');
-            tableBody.innerHTML = '';
-            results.forEach((result) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${result.member_name}</td>
-                    <td>${result.lv5Diff}</td>
-                    <td>${result.lv6Diff}</td>
-                `;
-                tableBody.appendChild(row);
-            });
+        document.getElementById('save-button').addEventListener('click', () => {
+            document.getElementById('week-modal').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
         });
 
-        document.getElementById('save-button').addEventListener('click', async () => {
+        document.getElementById('submit-period').addEventListener('click', async () => {
+            const week = parseInt(document.getElementById('week-input').value) || null;
+            const month = parseInt(document.getElementById('month-input').value);
+            const year = parseInt(document.getElementById('year-input').value);
+
             const rows = document.querySelectorAll('#review-body tr');
             const reviewedData = Array.from(rows).map((row) => {
                 const cells = row.querySelectorAll('input');
                 return {
-                    member_name: cells[0].value,
+                    member_name: cells[0].value.trim(),
                     lv1: parseInt(cells[1].value),
                     lv2: parseInt(cells[2].value),
                     lv3: parseInt(cells[3].value),
                     lv4: parseInt(cells[4].value),
                     lv5: parseInt(cells[5].value),
                     lv6: parseInt(cells[6].value),
+                    week,
+                    month,
+                    year,
                 };
             });
 
@@ -337,14 +182,20 @@
 
             if (response.ok) {
                 alert("Data saved successfully!");
+                closeModal('week-modal');
             } else {
                 alert("Error saving data to the database.");
             }
         });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            populateMemberSelect();
+        document.getElementById('cancel-period').addEventListener('click', () => {
+            closeModal('week-modal');
         });
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
     </script>
 </body>
 

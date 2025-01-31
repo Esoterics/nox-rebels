@@ -1,172 +1,122 @@
-<!DOCTYPE html>
-<html lang="en">
+const { chromium } = require('playwright');
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-</head>
+(async () => {
+  const browser = await chromium.launch({
+    headless: false,
+    args: [
+      '--start-maximized',
+      '--window-position=0,0',
+      '--window-size=1920,1080'
+    ]
+  });
 
-<body>
-    <nav>
-        <a href="/">OCR Extraction</a>
-        <a href="/admin.html">Administration</a>
-    </nav>
+  const context = await browser.newContext({
+    storageState: 'storageState.json',
+    viewport: { width: 1920, height: 945 }
+  });
 
-    <h1>Administration Dashboard</h1>
-    <h3>Member Management</h3>
+  const page = await context.newPage();
+  await page.goto('https://www.gtarcade.com/404.html');
 
-    <label for="filter-status">Filter by Status:</label>
-    <select id="filter-status">
-        <option value="all">All</option>
-        <option value="active">Active</option>
-        <option value="retired">Retired</option>
-        <option value="left">Left</option>
-    </select>
+  await page.getByRole('banner')
+    .getByRole('link', { name: 'Game', exact: true })
+    .click();
 
-    <table id="admin-table">
-        <thead>
-            <tr>
-                <th>Member Name</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="admin-body"></tbody>
-    </table>
+  const popup1Promise = page.waitForEvent('popup');
+  await page.getByRole('link', {
+    name: 'Game of Thrones Winter is Coming Game of Thrones Winter is Coming'
+  }).click();
+  const page1 = await popup1Promise;
+  if (!page1) throw new Error('First popup did not open!');
 
-    <!-- Rename Modal -->
-    <div class="admin-modal-backdrop hidden" id="modal-backdrop"></div>
+  const popup2Promise = page1.waitForEvent('popup');
+  await page1.locator('#joinBtn').click();
+  const page3 = await popup2Promise;
+  if (!page3) throw new Error('Second popup did not open!');
 
-    <div id="rename-modal" class="hidden admin-modal">
-        <h3>Rename Member</h3>
-        <label for="rename-input">New Name:</label>
-        <input type="text" id="rename-input" placeholder="Enter new member name" />
-        <div>
-            <button id="rename-save-button">Save</button>
-            <button id="close-rename-modal">Cancel</button>
-        </div>
-    </div>
+  await page3.waitForTimeout(8000);
 
-    <!-- Change Status Modal -->
-    <div id="status-modal" class="hidden admin-modal">
-        <h3>Change Member Status</h3>
-        <label for="status-select">Select New Status:</label>
-        <select id="status-select">
-            <option value="active">Active</option>
-            <option value="retired">Retired</option>
-            <option value="left">Left</option>
-        </select>
-        <div>
-            <button id="status-save-button">Save</button>
-            <button id="close-status-modal">Cancel</button>
-        </div>
-    </div>
+  const allFrames = page3.frames();
 
-    <script>
-        let selectedMember = '';
+  const canvasSelector = '#unity-canvas';
+  let targetFrame = null;
+  for (const f of allFrames) {
+    try {
+      await f.waitForSelector(canvasSelector, { timeout: 5000 });
+      targetFrame = f;
+      break;
+    } catch {}
+  }
 
-        // Fetch and display unique member names
-        async function fetchUniqueMembers(statusFilter = 'all') {
-            const response = await fetch(`/fetch-unique-members`);
-            const data = await response.json();
-            const adminBody = document.getElementById('admin-body');
-            adminBody.innerHTML = '';
+  if (!targetFrame) {
+    console.error(`Never found ${canvasSelector} in any frame!`);
+    return;
+  }
 
-            const filteredData = statusFilter === 'all' ? data : data.filter(member => member.status === statusFilter);
+  const box = await targetFrame.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    return {
+      width: rect.width,
+      height: rect.height
+    };
+  }, canvasSelector);
 
-            filteredData.forEach((entry) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${entry.member_name}</td>
-                    <td>${entry.status}</td>
-                    <td>
-                        <button onclick="openRenameModal('${entry.member_name}')">Rename</button>
-                        <button onclick="openStatusModal('${entry.member_name}')">Change Status</button>
-                    </td>
-                `;
-                adminBody.appendChild(row);
-            });
-        }
+  if (!box) {
+    console.error('Failed to get bounding box of the canvas.');
+    return;
+  }
 
-        // Open Rename Modal
-        function openRenameModal(memberName) {
-            selectedMember = memberName;
-            document.getElementById('rename-modal').classList.remove('hidden');
-            document.getElementById('modal-backdrop').classList.remove('hidden');
-        }
+  console.log(`${canvasSelector} bounding box:`, box);
 
-        // Save Renamed Member
-        document.getElementById('rename-save-button').addEventListener('click', async () => {
-            const newName = document.getElementById('rename-input').value.trim();
-            if (!newName) return alert('Please enter a new name.');
+  const clickActions = [
+    { x: 1730, y: 730, delay: 2000 },
+    { x: 1730, y: 730, delay: 2500 },
+    { x: 1300, y: 840, delay: 3000 },
+    { x: 1150, y: 680, delay: 1500 },
+    { x: 1100, y: 120, delay: 3500 },
+  ];
 
-            const response = await fetch('/rename-member', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedMembers: [selectedMember], newName }),
-            });
+  for (const { x, y, delay } of clickActions) {
+    console.log(`Clicking ${canvasSelector} at (${x}, ${y}), then waiting ${delay}ms`);
+    await targetFrame.click(canvasSelector, { position: { x, y } });
+    await targetFrame.waitForTimeout(delay);
+  }
 
-            if (response.ok) {
-                alert('Member renamed successfully!');
-                closeModal('rename-modal');
-                fetchUniqueMembers();
-            } else {
-                alert('Error renaming member.');
-            }
-        });
+  const clipRegion = {
+    x: 540,
+    y: 250,
+    width: 1470 - 540,
+    height: 830 - 250
+  };
 
-        // Open Status Modal
-        function openStatusModal(memberName) {
-            selectedMember = memberName;
-            document.getElementById('status-modal').classList.remove('hidden');
-            document.getElementById('modal-backdrop').classList.remove('hidden');
-        }
+  // Take first screenshot
+  await page3.screenshot({
+    path: 'partial_screenshot_1.png',
+    clip: clipRegion
+  });
+  console.log('Partial screenshot 1 taken.');
 
-        // Save Member Status
-        document.getElementById('status-save-button').addEventListener('click', async () => {
-            const newStatus = document.getElementById('status-select').value;
+  // Click into the iframe again
+  await targetFrame.click(canvasSelector, { position: { x: 734, y: 822 } });
+  await page3.waitForTimeout(1000);
 
-            const response = await fetch('/update-member-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedMembers: [selectedMember], newStatus }),
-            });
+  // Click and hold, then move cursor while holding
+  const mouse = page3.mouse;
+  await mouse.move(734, 822);
+  await mouse.down(); // Click and hold
+  await page3.waitForTimeout(500);
+  await mouse.move(728, 271, { steps: 10 });
+  await page3.waitForTimeout(1000);
+  await mouse.up(); // Release click
 
-            if (response.ok) {
-                alert(`Member status changed to '${newStatus}' successfully!`);
-                closeModal('status-modal');
-                fetchUniqueMembers();
-            } else {
-                alert('Error changing member status.');
-            }
-        });
+  // Take second screenshot after movement
+  await page3.screenshot({
+    path: 'partial_screenshot_2.png',
+    clip: clipRegion
+  });
+  console.log('Partial screenshot 2 taken after drag.');
 
-        // Close Modals with buttons inside modals
-        document.getElementById('close-rename-modal').addEventListener('click', () => closeModal('rename-modal'));
-        document.getElementById('close-status-modal').addEventListener('click', () => closeModal('status-modal'));
-
-        // Close modal when clicking the backdrop
-        document.querySelector('.admin-modal-backdrop').addEventListener('click', () => {
-            closeModal('rename-modal');
-            closeModal('status-modal');
-        });
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-            const adminBackdrop = document.querySelector('.admin-modal-backdrop');
-            if (adminBackdrop) adminBackdrop.classList.add('hidden');
-        }
-
-        // Filter member list by status
-        document.getElementById('filter-status').addEventListener('change', (e) => {
-            fetchUniqueMembers(e.target.value);
-        });
-
-        document.addEventListener('DOMContentLoaded', () => fetchUniqueMembers());
-    </script>
-</body>
-
-</html>
+  console.log('Script completed, keeping browser open.');
+})();

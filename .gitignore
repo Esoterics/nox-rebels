@@ -16,3 +16,15 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
+
+# .gitignore
+.env
+node_modules/
+
+# ignore screenshots
+**/*.png
+
+# Ignore screenshots folder
+screenshots/
+
+storageState.json

@@ -1,55 +1,72 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const express = require("express");
+const bodyParser = require("body-parser");
+const { MongoClient } = require("mongodb");
+const path = require("path");
+require("dotenv").config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 8080;
 
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
-const db = new sqlite3.Database('./db/ocr-data.db', (err) => {
-    if (err) {
-        console.error("Error opening database: " + err.message);
-    } else {
-        db.run(`
-            CREATE TABLE IF NOT EXISTS weekly_snapshots (
-                snapshot_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                member_name TEXT,
-                lv1 INTEGER,
-                lv2 INTEGER,
-                lv3 INTEGER,
-                lv4 INTEGER,
-                lv5 INTEGER,
-                lv6 INTEGER,
-                week_number INTEGER,
-                month INTEGER,
-                year INTEGER,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                status TEXT DEFAULT 'active'
-            )
-        `, (err) => {
-            if (err) console.error("Error creating table:", err.message);
-            else console.log("Table created or already exists.");
-        });
+// RU monitoring constants
+const FREE_TIER_RU_LIMIT = 1000;
+const RU_MONITORING_INTERVAL = 60000; // 1 minute
+let currentRUConsumption = 0;
+let lastResetTime = Date.now();
+
+// Ensure the correct endpoint format in .env (without https://)
+const mongoUri = `mongodb://${process.env.COSMOS_DATABASE}:${process.env.COSMOS_KEY}@${process.env.COSMOS_ENDPOINT}/?ssl=true&retryWrites=false&maxIdleTimeMS=120000`;
+
+const client = new MongoClient(mongoUri);
+
+let database, collection;
+
+async function initializeMongoDB() {
+    try {
+        console.log("🔄 Connecting to Cosmos DB (MongoDB API)...");
+        console.log("🔹 COSMOS_ENDPOINT:", process.env.COSMOS_ENDPOINT);
+        console.log("🔹 COSMOS_DATABASE:", process.env.COSMOS_DATABASE);
+        console.log("🔹 COSMOS_CONTAINER:", process.env.COSMOS_CONTAINER);
+
+        await client.connect();
+        database = client.db(process.env.COSMOS_DATABASE);
+        collection = database.collection(process.env.COSMOS_CONTAINER);
+
+        console.log(`✅ Connected to database '${process.env.COSMOS_DATABASE}' and collection '${process.env.COSMOS_CONTAINER}'.`);
+    } catch (error) {
+        console.error("❌ Error initializing MongoDB:", error);
+        process.exit(1);
     }
-});
+}
 
+// Start MongoDB Connection
+initializeMongoDB();
+
+// Function to Parse OCR Text
 function parseOCRText(ocrText) {
-    const lines = ocrText.split('\n').map((line) => line.trim()).filter(Boolean);
+    let lines = ocrText.split("\n").map((line) => line.trim()).filter(Boolean);
 
     if (/^member\s*name\s*lv\.\d/i.test(lines[0])) {
         lines.shift();
     }
 
-    const regex = /^([\w\sА-Яа-яёЁ'.-]+)\s+(\d+)(?:\(\+\d*\))?\s+(\d+)(?:\(\+\d*\))?\s+(\d+)(?:\(\+\d*\))?\s+(\d+)(?:\(\+\d*\))?\s+(\d+)(?:\(\+\d*\))?\s+(\d+)(?:\(\+\d*\))?$/;
+    lines = lines.map((line) =>
+        line.replace(/\s+/g, " ").replace(/\(\+\d+\)/g, "").replace(/Te\)/g, "0").trim()
+    );
+
+    console.log("Processed OCR Lines:", lines);
 
     const structuredData = [];
+
     lines.forEach((line) => {
+        const regex = /^([\w\sА-Яа-яёЁ'.-]+?)\s*(?:\|\s*)?(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/;
         const match = regex.exec(line);
+
         if (match) {
             structuredData.push({
+                id: `${match[1].trim()}_${Date.now()}`,
                 member_name: match[1].trim(),
                 lv1: parseInt(match[2], 10),
                 lv2: parseInt(match[3], 10),
@@ -57,16 +74,19 @@ function parseOCRText(ocrText) {
                 lv4: parseInt(match[5], 10),
                 lv5: parseInt(match[6], 10),
                 lv6: parseInt(match[7], 10),
+                timestamp: new Date(),
+                status: "active",
             });
+        } else {
+            console.log("❌ No match for:", line);
         }
     });
 
-    console.log("Parsed Member Names:", structuredData.map((data) => data.member_name));
     return structuredData;
 }
 
-// Endpoint to extract text from OCR
-app.post('/extract-text', (req, res) => {
+// Endpoint to Extract Text (OCR)
+app.post("/extract-text", async (req, res) => {
     const { ocrText } = req.body;
     const structuredData = parseOCRText(ocrText);
 
@@ -77,205 +97,46 @@ app.post('/extract-text', (req, res) => {
     res.json(structuredData);
 });
 
-// Endpoint to save manually reviewed data to the database
-app.post('/save-manual-data', (req, res) => {
+// Endpoint to Save Manually Reviewed Data
+app.post("/save-manual-data", async (req, res) => {
     const { data } = req.body;
 
-    if (!data || data.length === 0) {
-        return res.status(400).send("No data provided.");
+    if (!Array.isArray(data) || data.length === 0) {
+        return res.status(400).send("Invalid data format.");
     }
 
-    const insertStmt = db.prepare(`
-        INSERT INTO weekly_snapshots (member_name, lv1, lv2, lv3, lv4, lv5, lv6, week_number, month, year)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    data.forEach((entry) => {
-        if (!entry.year || !entry.month) {
-            return res.status(400).send("Invalid time period data.");
-        }
-        insertStmt.run(
-            entry.member_name,
-            entry.lv1,
-            entry.lv2,
-            entry.lv3,
-            entry.lv4,
-            entry.lv5,
-            entry.lv6,
-            entry.week || null,
-            entry.month,
-            entry.year
-        );
-    });
-
-    insertStmt.finalize((err) => {
-        if (err) {
-            console.error("Error saving data:", err.message);
-            return res.status(500).send("Error saving data.");
-        }
-        res.send("Data saved successfully!");
-    });
-});
-
-// Endpoint to fetch all weekly snapshots with optional status filter
-app.get('/fetch-weekly-snapshots', (req, res) => {
-    const { status } = req.query;
-
-    let query = 'SELECT * FROM weekly_snapshots';
-    const params = [];
-
-    if (status && status !== 'all') {
-        query += ' WHERE status = ?';
-        params.push(status);
-    }
-
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            res.status(500).send("Error fetching data");
-        } else {
-            res.json(rows);
-        }
-    });
-});
-
-// Endpoint to rename member (update all historical entries)
-app.post('/rename-member', (req, res) => {
-    const { selectedMembers, newName } = req.body;
-    if (!selectedMembers || selectedMembers.length !== 1 || !newName) {
-        return res.status(400).send('Invalid request.');
-    }
-    db.run(`UPDATE weekly_snapshots SET member_name = ? WHERE member_name = ?`, [newName, selectedMembers[0]], (err) => {
-        if (err) return res.status(500).send('Error renaming member.');
-        res.send('Member renamed successfully.');
-    });
-});
-
-// Endpoint to fetch unique member names for the admin table
-app.get('/fetch-unique-members', (req, res) => {
-    const query = `
-        SELECT DISTINCT member_name, status FROM weekly_snapshots ORDER BY member_name ASC
-    `;
-
-    db.all(query, [], (err, rows) => {
-        if (err) {
-            res.status(500).send("Error fetching unique member names");
-        } else {
-            res.json(rows);
-        }
-    });
-});
-
-// Endpoint to retire member (flag member as "retired")
-app.post('/retire-member', (req, res) => {
-    const { selectedMembers } = req.body;
-
-    if (!selectedMembers || selectedMembers.length === 0) {
-        return res.status(400).send('Invalid request.');
-    }
-
-    const placeholders = selectedMembers.map(() => '?').join(', ');
-    const query = `DELETE FROM weekly_snapshots WHERE member_name IN (${placeholders})`;
-
-    db.run(query, selectedMembers, (err) => {
-        if (err) {
-            res.status(500).send('Error retiring members.');
-        } else {
-            res.send('Members retired successfully.');
-        }
-    });
-});
-
-// Endpoint to update member status
-app.post('/update-member-status', (req, res) => {
-    const { selectedMembers, newStatus } = req.body;
-    if (!selectedMembers || selectedMembers.length !== 1 || !newStatus) {
-        return res.status(400).send('Invalid request.');
-    }
-    db.run(`UPDATE weekly_snapshots SET status = ? WHERE member_name = ?`, [newStatus, selectedMembers[0]], (err) => {
-        if (err) return res.status(500).send('Error updating status.');
-        res.send('Member status updated successfully.');
-    });
-});
-
-// Endpoint to fetch difference report based on two selected periods
-app.get('/report', (req, res) => {
-    const { year1, month1, week1, year2, month2, week2 } = req.query;
-
-    console.log("Request Parameters:", { year1, month1, week1, year2, month2, week2 });
-
-    const query = `
-        SELECT member_name, SUM(lv1) AS lv1, SUM(lv2) AS lv2, SUM(lv3) AS lv3, SUM(lv4) AS lv4,
-               SUM(lv5) AS lv5, SUM(lv6) AS lv6, year, month, COALESCE(week_number, 'all') AS week_number
-        FROM weekly_snapshots
-        WHERE (year = ? AND month = ? AND (week_number IS NULL OR ? IS NOT NULL))
-           OR (year = ? AND month = ? AND (week_number IS NULL OR ? IS NOT NULL))
-        GROUP BY member_name, year, month
-    `;
-
-    const params = [
-        year1, month1, week1 ? parseInt(week1, 10) : null,
-        year2, month2, week2 ? parseInt(week2, 10) : null
-    ];
-
-    console.log("Query Parameters:", params);
-
-    db.all(query, params, (err, rows) => {
-        if (err) {
-            console.error('Database Error:', err);
-            return res.status(500).send('Error fetching report data.');
-        }
-
-        console.log("Fetched Data Rows:", rows);
-
-        const report = {};
-        rows.forEach((entry) => {
-            const key = `${entry.year}-${entry.month}-${entry.week_number}`;
-            if (!report[entry.member_name]) report[entry.member_name] = { period1: {}, period2: {} };
-
-            if (key === `${year1}-${month1}-${week1 || 'all'}`) {
-                report[entry.member_name].period1 = entry;
-            } else {
-                report[entry.member_name].period2 = entry;
-            }
+    try {
+        const result = await collection.insertMany(data);
+        res.json({
+            message: "Data saved successfully!",
+            itemsSaved: result.insertedCount,
         });
+    } catch (error) {
+        console.error("❌ Error saving to MongoDB:", error);
+        res.status(500).send("Error saving data.");
+    }
+});
 
-        const analysis = Object.entries(report).map(([member_name, data]) => {
-            const lv5Diff = ((data.period2.lv5 || 0) - (data.period1.lv5 || 0));
-            const lv6Diff = ((data.period2.lv6 || 0) - (data.period1.lv6 || 0));
-            const totalDifference = lv5Diff + lv6Diff;
-
-            return {
-                member_name,
-                lv5Diff,
-                lv6Diff,
-                totalDifference
-            };
-        });
-
-        console.log("Final Analysis Data:", analysis);
-        res.json(analysis);
+// Endpoint to Get RU Usage Stats (for reference)
+app.get("/ru-stats", (req, res) => {
+    res.json({
+        currentRUConsumption,
+        limit: FREE_TIER_RU_LIMIT,
+        lastResetTime: new Date(lastResetTime).toISOString(),
+        nextResetIn: RU_MONITORING_INTERVAL - (Date.now() - lastResetTime),
+        utilizationPercentage: (currentRUConsumption / FREE_TIER_RU_LIMIT) * 100,
     });
 });
 
-
-
-// Endpoint to fetch distinct periods (week, month, year) for dropdown
-app.get('/available-periods', (req, res) => {
-    const query = `
-        SELECT DISTINCT week_number, month, year
-        FROM weekly_snapshots
-        ORDER BY year DESC, month DESC, week_number DESC
-    `;
-
-    db.all(query, [], (err, rows) => {
-        if (err) {
-            res.status(500).send('Error fetching available periods.');
-        } else {
-            res.json(rows);
-        }
+// Start Server
+initializeMongoDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server is running on http://localhost:${PORT}`);
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+// Debug Logging
+console.log("COSMOS_ENDPOINT:", process.env.COSMOS_ENDPOINT);
+console.log("COSMOS_KEY:", process.env.COSMOS_KEY ? "✅ Key Loaded" : "❌ Key Missing");
+console.log("COSMOS_DATABASE:", process.env.COSMOS_DATABASE);
+console.log("COSMOS_CONTAINER:", process.env.COSMOS_CONTAINER);

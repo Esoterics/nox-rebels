@@ -50,7 +50,9 @@
         </table>
         <button id="save-button">Save to Database</button>
     </div>
+    <div id="warnings-container"></div>
 
+    <!-- Modal for Week, Month, Year -->
     <div id="week-modal" class="hidden modal">
         <h3>Enter Snapshot Period</h3>
         <div class="form-row">
@@ -80,15 +82,15 @@
             <button id="cancel-period">Cancel</button>
         </div>
     </div>
-    
+
     <div class="modal-backdrop hidden" id="modal-backdrop"></div>
-    
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js"></script>
     <script>
         let rawOCRText = "";
         let reviewedData = [];
 
+        // OCR Extraction (Tesseract.js)
         document.getElementById('ocr-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const file = document.getElementById('image-upload').files[0];
@@ -123,6 +125,7 @@
             };
         });
 
+        // Populate Review Table
         function populateReviewTable(data) {
             const reviewBody = document.getElementById('review-body');
             reviewBody.innerHTML = '';
@@ -147,56 +150,61 @@
             });
         }
 
+        // Open Modal for Week, Month, Year Input
         document.getElementById('save-button').addEventListener('click', () => {
             document.getElementById('week-modal').classList.remove('hidden');
             document.getElementById('modal-backdrop').classList.remove('hidden');
         });
 
+        // Save Reviewed Data to Backend
         document.getElementById('submit-period').addEventListener('click', async () => {
-            const week = parseInt(document.getElementById('week-input').value) || null;
-            const month = parseInt(document.getElementById('month-input').value);
-            const year = parseInt(document.getElementById('year-input').value);
+            const week = document.getElementById('week-input').value.trim();
+            const month = document.getElementById('month-input').value;
+            const year = document.getElementById('year-input').value.trim();
+
+            if (!month || !year) {
+                alert("⚠️ Please enter a valid month and year.");
+                return;
+            }
 
             const rows = document.querySelectorAll('#review-body tr');
             const reviewedData = Array.from(rows).map((row) => {
                 const cells = row.querySelectorAll('input');
                 return {
                     member_name: cells[0].value.trim(),
-                    lv1: parseInt(cells[1].value),
-                    lv2: parseInt(cells[2].value),
-                    lv3: parseInt(cells[3].value),
-                    lv4: parseInt(cells[4].value),
-                    lv5: parseInt(cells[5].value),
-                    lv6: parseInt(cells[6].value),
-                    week,
-                    month,
-                    year,
+                    lv1: parseInt(cells[1].value) || 0,
+                    lv2: parseInt(cells[2].value) || 0,
+                    lv3: parseInt(cells[3].value) || 0,
+                    lv4: parseInt(cells[4].value) || 0,
+                    lv5: parseInt(cells[5].value) || 0,
+                    lv6: parseInt(cells[6].value) || 0,
+                    week: week ? parseInt(week) : null,
+                    month: parseInt(month),
+                    year: parseInt(year),
                 };
             });
 
-            const response = await fetch('/save-manual-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: reviewedData }),
-            });
+            try {
+                const response = await fetch('/save-manual-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: reviewedData }),
+                });
 
-            if (response.ok) {
-                alert("Data saved successfully!");
+                alert(response.ok ? "✅ Data saved successfully!" : "❌ Error saving data.");
                 closeModal('week-modal');
-            } else {
-                alert("Error saving data to the database.");
+            } catch (error) {
+                alert("⚠️ Server error. Check console logs.");
             }
         });
 
-        document.getElementById('cancel-period').addEventListener('click', () => {
-            closeModal('week-modal');
-        });
+        document.getElementById('cancel-period').addEventListener('click', () => closeModal('week-modal'));
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
             document.getElementById('modal-backdrop').classList.add('hidden');
         }
     </script>
-</body>
 
+</body>
 </html>
